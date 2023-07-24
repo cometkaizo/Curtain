@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " # ",
+    "# #",
+    " # "
+  ],
+  "key": {
+    "#": {
+      "item": "ck_curtain:refined_jade"
+    }
+  },
+  "result": {
+    "item": "ck_curtain:jade_coin"
+  }
+}

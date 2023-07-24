@@ -1,0 +1,27 @@
+{
+  "display": {
+    "icon": {
+      "item": "ck_curtain:jade_coin"
+    },
+    "title": "Stonks",
+    "description": "Craft a Jade Coin using Refined Jade",
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "parent": "ck_curtain:refined_jade",
+  "criteria": {
+    "requirement": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "ck_curtain:jade_coin"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

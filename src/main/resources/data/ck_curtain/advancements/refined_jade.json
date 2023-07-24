@@ -1,0 +1,27 @@
+{
+  "display": {
+    "icon": {
+      "item": "ck_curtain:refined_jade"
+    },
+    "title": "Refinery",
+    "description": "Refine Jade using a grindstone",
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "parent": "ck_curtain:jade",
+  "criteria": {
+    "requirement": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "ck_curtain:refined_jade"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
