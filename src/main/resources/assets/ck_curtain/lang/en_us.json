@@ -1,5 +1,9 @@
 {
   "item.ck_curtain.jade": "Jade",
   "item.ck_curtain.refined_jade": "Refined Jade",
-  "item.ck_curtain.jade_coin": "Jade Coin"
+  "item.ck_curtain.jade_coin": "Jade Coin",
+
+  "enchantment.ck_curtain.shockwave": "Shockwave",
+  "enchantment.ck_curtain.infusion": "Infusion",
+  "enchantment.ck_curtain.jetstream": "Jetstream"
 }
