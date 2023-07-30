@@ -12,21 +12,24 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
-import static me.cometkaizo.curtain.base.module.Modules.*;
-
-public class DefaultModuleLoader implements ModuleLoader {
-    protected final String packageName;
+public class DefaultModuleCreator implements ModuleCreator {
+    protected final Set<String> ignoredFilePrefixes;
     protected final boolean setInstanceOnLoad;
+    protected ModuleLoader loader;
 
-    public DefaultModuleLoader(String packageName, boolean setInstanceOnLoad) {
-        this.packageName = packageName;
+    public DefaultModuleCreator(Set<String> ignoredFilePrefixes, boolean setInstanceOnLoad) {
+        this.ignoredFilePrefixes = ignoredFilePrefixes;
         this.setInstanceOnLoad = setInstanceOnLoad;
     }
 
     @Override
-    public Set<Module> loadModules() {
+    public @NotNull Set<@NotNull Module> createModules(ModuleLoader loader) {
+        this.loader = loader;
         var moduleTypes = getModuleTypes();
         Set<Module> modules = new HashSet<>(moduleTypes.size());
 
@@ -41,6 +44,7 @@ public class DefaultModuleLoader implements ModuleLoader {
             }
         }
 
+        this.loader = null;
         return modules;
     }
 
@@ -50,11 +54,21 @@ public class DefaultModuleLoader implements ModuleLoader {
         ModFileScanData scanData = ModList.get().getModFileById(Main.MOD_ID).getFile().getScanResult();
         return scanData.getClasses().stream()
                 .map(ModFileScanData.ClassData::clazz)
+                .filter(this::isNotIgnored)
                 .map(this::toClass)
                 .filter(Objects::nonNull)
                 .filter(Module.class::isAssignableFrom)
                 .map(c -> (Class<? extends Module>) c)
                 .toList();
+    }
+
+    private boolean isNotIgnored(Type type) {
+        String className = type.getClassName();
+        if (className == null) return false;
+        for (String ignoredFilePrefix : ignoredFilePrefixes) {
+            if (className.startsWith(ignoredFilePrefix)) return false;
+        }
+        return true;
     }
 
     private Class<?> toClass(Type type) {
@@ -83,13 +97,13 @@ public class DefaultModuleLoader implements ModuleLoader {
             for (Annotation annotation : annotations) {
                 if (annotation.annotationType() != InstanceHolder.class) continue;
                 if (Modifier.isFinal(field.getModifiers())) {
-                    logModuleLoadingWarning(moduleType, "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but is final");
+                    loader.addDiagnostic(new ModuleLoader.Warning(moduleType, "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but is final", null));
                 } else if (Modifier.isPrivate(field.getModifiers())) {
-                    logModuleLoadingWarning(moduleType, "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but is private");
+                    loader.addDiagnostic(new ModuleLoader.Warning(moduleType, "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but is private", null));
                 } else if (!Modifier.isStatic(field.getModifiers())) {
-                    logModuleLoadingWarning(moduleType, "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but is not static");
+                    loader.addDiagnostic(new ModuleLoader.Warning(moduleType, "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but is not static", null));
                 } else if (!field.getType().isAssignableFrom(moduleType)) {
-                    logModuleLoadingWarning(moduleType, "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but of the incorrect type");
+                    loader.addDiagnostic(new ModuleLoader.Warning(moduleType, "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but of the incorrect type", null));
                 } else return field;
             }
         }
@@ -101,7 +115,7 @@ public class DefaultModuleLoader implements ModuleLoader {
         try {
             FieldUtils.writeField(field, (Object) null, module, false);
         } catch (IllegalAccessException e) {
-            logModuleLoadingWarning(module.getClass(), "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but is not accessible");
+            loader.addDiagnostic(new ModuleLoader.Warning(module.getClass(), "Field '" + field.getName() + "' is annotated with " + InstanceHolder.class.getSimpleName() + "' but is not accessible", null));
         }
     }
 
@@ -110,7 +124,7 @@ public class DefaultModuleLoader implements ModuleLoader {
         try {
             return moduleType.getDeclaredConstructor();
         } catch (NoSuchMethodException e) {
-            logModuleLoadingError(moduleType, "Could not find no-arg constructor", e);
+            loader.addDiagnostic(new ModuleLoader.Error(moduleType, "Could not find no-arg constructor", e));
             return null;
         }
     }
@@ -119,12 +133,31 @@ public class DefaultModuleLoader implements ModuleLoader {
         try {
             return constructor.newInstance();
         } catch (InstantiationException e) {
-            logModuleLoadingError(constructor.getDeclaringClass(), "Could not instantiate the object", e);
+            loader.addDiagnostic(new ModuleLoader.Error(constructor.getDeclaringClass(), "Could not instantiate the object", e));
         } catch (IllegalAccessException e) {
-            logModuleLoadingError(constructor.getDeclaringClass(), "Could not access the constructor", e);
+            loader.addDiagnostic(new ModuleLoader.Error(constructor.getDeclaringClass(), "Could not access the constructor", e));
         } catch (InvocationTargetException e) {
-            logModuleLoadingError(constructor.getDeclaringClass(), "An exception occurred while instantiating the object", e);
+            loader.addDiagnostic(new ModuleLoader.Error(constructor.getDeclaringClass(), "An exception occurred while instantiating the object", e));
         }
         return null;
     }
+
+    public static class Builder {
+        protected final Set<String> ignoredFilePrefixes = new HashSet<>(1);
+        protected boolean setInstancesOnLoad = true;
+        public Builder setInstancesOnLoad(boolean setInstancesOnLoad) {
+            this.setInstancesOnLoad = setInstancesOnLoad;
+            return this;
+        }
+
+        public Builder ignoreFilesStartingWith(String fileName) {
+            ignoredFilePrefixes.add(fileName);
+            return this;
+        }
+
+        public DefaultModuleCreator build() {
+            return new DefaultModuleCreator(ignoredFilePrefixes, setInstancesOnLoad);
+        }
+    }
+
 }

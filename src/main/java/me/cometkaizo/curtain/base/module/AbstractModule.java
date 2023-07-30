@@ -1,7 +1,16 @@
 package me.cometkaizo.curtain.base.module;
 
 public abstract class AbstractModule implements Module {
+    protected boolean enabled;
     private boolean initialized;
+
+    public AbstractModule() {
+        this(true);
+    }
+
+    public AbstractModule(boolean enabled) {
+        this.enabled = enabled;
+    }
 
     @Override
     public String getName() {
@@ -19,8 +28,18 @@ public abstract class AbstractModule implements Module {
     }
 
     @Override
+    public void enable() {
+        enabled = true;
+    }
+
+    @Override
+    public void disable() {
+        enabled = false;
+    }
+
+    @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 
     public boolean isInitialized() {

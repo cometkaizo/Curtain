@@ -1,4 +1,4 @@
-package me.cometkaizo.curtain.item;
+package me.cometkaizo.curtain.registries;
 
 import me.cometkaizo.curtain.Main;
 import net.minecraft.world.item.Item;

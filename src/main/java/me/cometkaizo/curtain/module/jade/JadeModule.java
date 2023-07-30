@@ -2,7 +2,7 @@ package me.cometkaizo.curtain.module.jade;
 
 import me.cometkaizo.curtain.base.module.AbstractModule;
 import me.cometkaizo.curtain.base.module.InstanceHolder;
-import me.cometkaizo.curtain.item.CurtainItems;
+import me.cometkaizo.curtain.registries.CurtainItems;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
@@ -12,7 +12,7 @@ import net.minecraftforge.registries.RegistryObject;
 
 public class JadeModule extends AbstractModule {
     @InstanceHolder
-    public static JadeModule INSTANCE = null;
+    public static JadeModule INSTANCE;
 
     public RegistryObject<Item> jadeItem, refinedJadeItem, jadeCoinItem;
 
@@ -34,5 +34,9 @@ public class JadeModule extends AbstractModule {
             event.accept(refinedJadeItem);
             event.accept(jadeCoinItem);
         }
+    }
+
+    public static boolean isNotEnabled() {
+        return INSTANCE == null || !INSTANCE.isEnabled();
     }
 }
